@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { COUNTRIES } from "@/lib/countries";
-import { claimCentsForRank, dollars, MIN_BID_CENTS, projectedRank } from "@/lib/money";
+import { dollars, MIN_BID_CENTS, projectedRank } from "@/lib/money";
 import { MAX_BOAST, MAX_OWNER_NAME, MAX_PET_NAME } from "@/lib/policy";
 import type { CourtState, MeState } from "@/lib/types";
 import { MultiImageUpload } from "./MultiImageUpload";
@@ -87,8 +87,6 @@ export function ChallengeModal({
   );
 
   const throneCost = Math.ceil(court.nextThroneCents / 100);
-  const rank2Cost = Math.ceil(claimCentsForRank(2, court.court) / 100);
-  const rank3Cost = Math.ceil(claimCentsForRank(3, court.court) / 100);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -219,68 +217,22 @@ export function ChallengeModal({
             </div>
           </div>
 
-          {/* Quick Preset Chips */}
-          <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-mute">
-              Amounts
-            </label>
-            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <button
-                type="button"
-                onClick={() => onAmount(throneCost)}
-                className={`flex flex-col items-start rounded-2xl border p-3 text-left transition-all ${
-                  amount === throneCost
-                    ? "border-emerald bg-emerald/10 shadow-sm"
-                    : "border-line bg-paper hover:border-emerald/40 hover:bg-white"
-                }`}
-              >
-                <span className="text-[11px] font-bold text-emerald">#1</span>
-                <span className="font-[family-name:var(--font-display)] text-base font-bold text-ink">
-                  ${throneCost}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onAmount(rank2Cost)}
-                className={`flex flex-col items-start rounded-2xl border p-3 text-left transition-all ${
-                  amount === rank2Cost
-                    ? "border-steel bg-steel/10 shadow-sm"
-                    : "border-line bg-paper hover:border-steel/40 hover:bg-white"
-                }`}
-              >
-                <span className="text-[11px] font-bold text-steel">#2</span>
-                <span className="font-[family-name:var(--font-display)] text-base font-bold text-ink">
-                  ${rank2Cost}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onAmount(rank3Cost)}
-                className={`flex flex-col items-start rounded-2xl border p-3 text-left transition-all ${
-                  amount === rank3Cost
-                    ? "border-copper bg-copper/10 shadow-sm"
-                    : "border-line bg-paper hover:border-copper/40 hover:bg-white"
-                }`}
-              >
-                <span className="text-[11px] font-bold text-copper">#3</span>
-                <span className="font-[family-name:var(--font-display)] text-base font-bold text-ink">
-                  ${rank3Cost}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onAmount(Math.max(MIN_BID_CENTS / 100, Math.round(amount + 10)))}
-                className="flex flex-col items-start rounded-2xl border border-line bg-paper p-3 text-left transition-all hover:border-teal/40 hover:bg-white"
-              >
-                <span className="text-[11px] font-bold text-teal">Add $10</span>
-                <span className="font-[family-name:var(--font-display)] text-base font-bold text-ink">
-                  +$10
-                </span>
-              </button>
-            </div>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-mute">Quick amount:</span>
+            <button
+              type="button"
+              onClick={() => onAmount(throneCost)}
+              className="rounded-lg border border-line px-3 py-1.5 font-semibold text-ink hover:border-ink"
+            >
+              Take #1 for ${throneCost}
+            </button>
+            <button
+              type="button"
+              onClick={() => onAmount(Math.max(MIN_BID_CENTS / 100, Math.round(amount + 10)))}
+              className="rounded-lg border border-line px-3 py-1.5 font-semibold text-ink hover:border-ink"
+            >
+              Add $10
+            </button>
           </div>
 
           <form onSubmit={onSubmit} className="space-y-5">

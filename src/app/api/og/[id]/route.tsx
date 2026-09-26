@@ -1,5 +1,4 @@
 import { ImageResponse } from "next/og";
-import { dollars } from "@/lib/money";
 import { getPet } from "@/lib/store";
 
 export const runtime = "nodejs";
@@ -17,6 +16,13 @@ export async function GET(
   const origin = new URL(req.url).origin;
   const photoPath = pet.photoUrl || "";
   const photo = photoPath.startsWith("http") ? photoPath : `${origin}${photoPath}`;
+  const snapshot = new Date().toISOString().replace("T", " ").slice(0, 16);
+  const points = Math.round(pet.totalCents / 100).toLocaleString("en-US");
+  const requestUrl = new URL(req.url);
+  const headers =
+    requestUrl.searchParams.get("download") === "1"
+      ? { "Content-Disposition": `attachment; filename="${pet.id}-petthrone-card.png"` }
+      : undefined;
 
   return new ImageResponse(
     (
@@ -25,64 +31,106 @@ export async function GET(
           width: "100%",
           height: "100%",
           display: "flex",
-          background: "#14201c",
-          color: "#eef6f2",
-          padding: 48,
-          fontFamily: "Georgia, serif",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#121512",
+          color: "#f5f1e8",
+          padding: 36,
+          fontFamily: "Arial, sans-serif",
         }}
       >
         <div
           style={{
             display: "flex",
-            flex: 1,
-            border: "2px solid #2c4038",
-            borderRadius: 32,
-            overflow: "hidden",
-            background: "#1b2a25",
+            width: "100%",
+            height: "100%",
+            flexDirection: "column",
+            alignItems: "center",
+            border: "2px solid #c8aa62",
+            padding: "66px 72px 48px",
+            background: "#121512",
           }}
         >
-          <img
-            src={photo}
-            alt=""
-            width={480}
-            height={534}
-            style={{ width: 480, height: 534, objectFit: "cover" }}
-          />
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              padding: 48,
-              flex: 1,
+              color: "#d7bb78",
+              fontSize: 20,
+              letterSpacing: 2,
             }}
           >
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <div style={{ fontSize: 22, color: "#1bb888", fontWeight: 700 }}>PetThrone</div>
-              <div style={{ fontSize: 28, marginTop: 8, color: "#9aafa6" }}>
-                {pet.rank ? `#${pet.rank}` : "Unranked"}
-              </div>
-              <div style={{ fontSize: 64, fontWeight: 800, lineHeight: 1.05, marginTop: 12 }}>
-                {pet.name}
-              </div>
-              <div style={{ fontSize: 26, color: "#9aafa6", marginTop: 16 }}>
-                {pet.boast || "The richest pet on the web"}
-              </div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <div style={{ fontSize: 20, color: "#9aafa6" }}>Total</div>
-              <div style={{ fontSize: 56, fontWeight: 800, color: "#1bb888" }}>
-                {dollars(pet.totalCents)}
-              </div>
-              <div style={{ fontSize: 20, color: "#9aafa6", marginTop: 8 }}>
-                {pet.ownerName}
-                {pet.country ? ` · ${pet.country}` : ""}
-              </div>
+            PETTHRONE · SHARE CARD
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              width: 390,
+              height: 390,
+              marginTop: 64,
+              borderRadius: 195,
+              padding: 18,
+              background: "#2b372d",
+              border: "18px solid #1e2921",
+              overflow: "hidden",
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={photo}
+              alt=""
+              width={354}
+              height={354}
+              style={{
+                width: 354,
+                height: 354,
+                borderRadius: 177,
+                objectFit: "cover",
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              marginTop: 38,
+              fontFamily: "Georgia, serif",
+              fontSize: 68,
+              lineHeight: 1,
+              textAlign: "center",
+            }}
+          >
+            {pet.name}
+          </div>
+
+          <div style={{ display: "flex", marginTop: 35, fontSize: 25 }}>
+            {pet.rank ? `#${pet.rank} worldwide` : "Unranked"}
+            {pet.country ? ` · ${pet.country}` : ""}
+          </div>
+
+          <div style={{ display: "flex", marginTop: 20, fontSize: 25 }}>
+            {points} paid placement {points === "1" ? "point" : "points"}
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flex: 1,
+              flexDirection: "column",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              color: "#c8c8c0",
+              fontSize: 17,
+            }}
+          >
+            <div style={{ display: "flex" }}>Snapshot {snapshot} UTC</div>
+            <div style={{ display: "flex", marginTop: 18 }}>
+              Paid placement, not real wealth. No cash prize.
             </div>
           </div>
         </div>
       </div>
     ),
-    { width: 1200, height: 630 },
+    { width: 1024, height: 1024, headers },
   );
 }

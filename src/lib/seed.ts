@@ -4,8 +4,8 @@ export const SAMPLE_PETS = [
   {
     id: "pet-1-winston",
     userId: "user-arthur",
-    name: "King Winston",
-    boast: "Heir to the Tennis Ball Dynasty, ruler of sunny spots on the rug.",
+    name: "Winston",
+    boast: "Loves tennis balls and sleeping by the window.",
     photoUrl: "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=1000&q=80",
     photos: [
       "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=1000&q=80",
@@ -20,8 +20,8 @@ export const SAMPLE_PETS = [
   {
     id: "pet-2-cleo",
     userId: "user-elena",
-    name: "Duchess Cleo",
-    boast: "Refuses tap water. Demands tributary treats served on fine china.",
+    name: "Cleo",
+    boast: "Usually found on the warmest chair in the house.",
     photoUrl: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1000&q=80",
     photos: [
       "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1000&q=80",
@@ -36,8 +36,8 @@ export const SAMPLE_PETS = [
   {
     id: "pet-3-reginald",
     userId: "user-oliver",
-    name: "Sir Reginald Paws",
-    boast: "Low to the ground, elevated in social status. Master of side-eye.",
+    name: "Reggie",
+    boast: "Small legs, big appetite, always ready for a walk.",
     photoUrl: "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=1000&q=80",
     photos: [
       "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=1000&q=80",
@@ -52,8 +52,8 @@ export const SAMPLE_PETS = [
   {
     id: "pet-4-baron",
     userId: "user-sophie",
-    name: "Baron Von Wiggle",
-    boast: "Champion heavyweight snorer and professional lap warmer.",
+    name: "Bruno",
+    boast: "A loud sleeper who wants to sit on every lap.",
     photoUrl: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=1000&q=80",
     photos: [
       "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=1000&q=80",
@@ -68,8 +68,8 @@ export const SAMPLE_PETS = [
   {
     id: "pet-5-yuki",
     userId: "user-kenji",
-    name: "Princess Yuki",
-    boast: "Sings the dramatic opera of her ancestors when dinner is late.",
+    name: "Yuki",
+    boast: "Talks through dinner and runs whenever it snows.",
     photoUrl: "https://images.unsplash.com/photo-1537151625747-768eb6cf92b2?auto=format&fit=crop&w=1000&q=80",
     photos: [
       "https://images.unsplash.com/photo-1537151625747-768eb6cf92b2?auto=format&fit=crop&w=1000&q=80",
@@ -144,8 +144,8 @@ export const SEED_STATE: AppState = {
       kind: "crown",
       actorPetId: "pet-1-winston",
       victimPetId: "pet-2-cleo",
-      actorName: "King Winston",
-      victimName: "Duchess Cleo",
+      actorName: "Winston",
+      victimName: "Cleo",
       amountCents: 45000,
       createdAt: "2026-09-26T21:00:00.000Z",
     },
@@ -154,7 +154,7 @@ export const SEED_STATE: AppState = {
       kind: "bid",
       actorPetId: "pet-2-cleo",
       victimPetId: null,
-      actorName: "Duchess Cleo",
+      actorName: "Cleo",
       victimName: null,
       amountCents: 32000,
       createdAt: "2026-09-26T20:15:00.000Z",
@@ -164,7 +164,7 @@ export const SEED_STATE: AppState = {
       kind: "bid",
       actorPetId: "pet-3-reginald",
       victimPetId: null,
-      actorName: "Sir Reginald Paws",
+      actorName: "Reggie",
       victimName: null,
       amountCents: 21000,
       createdAt: "2026-09-26T19:45:00.000Z",
@@ -174,7 +174,7 @@ export const SEED_STATE: AppState = {
       kind: "boost",
       actorPetId: "pet-4-baron",
       victimPetId: null,
-      actorName: "Baron Von Wiggle",
+      actorName: "Bruno",
       victimName: null,
       amountCents: 14500,
       createdAt: "2026-09-26T18:20:00.000Z",
@@ -184,7 +184,7 @@ export const SEED_STATE: AppState = {
       kind: "bid",
       actorPetId: "pet-5-yuki",
       victimPetId: null,
-      actorName: "Princess Yuki",
+      actorName: "Yuki",
       victimName: null,
       amountCents: 9500,
       createdAt: "2026-09-26T17:10:00.000Z",

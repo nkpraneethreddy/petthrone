@@ -78,6 +78,13 @@ export function ShareButtons({ pet, compact = false }: { pet: RankedPet; compact
       >
         {copied ? "Copied" : "Copy"}
       </button>
+      <a
+        href={`/api/og/${pet.id}?download=1`}
+        download={`${pet.id}-petthrone-card.png`}
+        className="rounded-xl border border-line bg-paper px-3 py-2 text-xs font-bold text-ink hover:border-teal"
+      >
+        Download PNG
+      </a>
       <button
         type="button"
         onClick={nativeShare}
