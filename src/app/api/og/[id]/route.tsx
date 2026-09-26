@@ -102,8 +102,7 @@ export async function GET(
           </div>
 
           <div style={{ display: "flex", marginTop: 34, fontSize: 27 }}>
-            {pet.rank ? `Rank #${pet.rank}` : "Unranked"}
-            {pet.country ? ` · ${pet.country}` : ""}
+            {pet.rank ? `#${pet.rank} worldwide` : "Unranked"}
           </div>
 
           {pet.boast ? (

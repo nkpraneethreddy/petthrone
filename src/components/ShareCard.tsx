@@ -36,8 +36,7 @@ export function ShareCard({
           </h1>
 
           <p className="mt-5 text-sm sm:text-base">
-            {pet.rank ? `Rank #${pet.rank}` : "Unranked"}
-            {pet.country ? ` · ${pet.country}` : ""}
+            {pet.rank ? `#${pet.rank} worldwide` : "Unranked"}
           </p>
           {pet.boast && (
             <p className="mt-4 max-w-md text-xs leading-5 text-[#c8c8c0] sm:text-sm">
