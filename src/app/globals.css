@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+:root {
+  --canvas: #ffffff;
+  --paper: #f4f6f5;
+  --ink: #1f2a24;
+  --mute: #5c6b64;
+  --line: #e3e8e5;
+  --emerald: #0f8f6b;
+  --vermillion: #e23d2b;
+  --teal: #1aa3c4;
+  --steel: #5b7c99;
+  --copper: #c45c26;
+  color-scheme: light;
+}
+
+html.dark {
+  --canvas: #14201c;
+  --paper: #1b2a25;
+  --ink: #eef6f2;
+  --mute: #9aafa6;
+  --line: #2c4038;
+  --emerald: #1bb888;
+  --vermillion: #f05a4a;
+  --teal: #3ec4df;
+  --steel: #7a9bb3;
+  --copper: #e07a45;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-mute: var(--mute);
+  --color-line: var(--line);
+  --color-emerald: var(--emerald);
+  --color-vermillion: var(--vermillion);
+  --color-teal: var(--teal);
+  --color-steel: var(--steel);
+  --color-copper: var(--copper);
+  --font-sans: var(--font-bricolage);
+  --font-display: var(--font-fraunces);
+}
+
+html,
+body {
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: #c8f0e4;
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes flash-veil {
+  0% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.dethrone-flash {
+  animation: flash-veil 1.2s ease-out forwards;
+  background: color-mix(in srgb, var(--vermillion) 35%, white);
+  pointer-events: none;
+}
+
+.prose-legal h2 {
+  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 2rem;
+}
+
+.prose-legal ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.prose-legal a {
+  color: var(--emerald);
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+
+.prose-legal a:hover {
+  text-decoration: underline;
+}
