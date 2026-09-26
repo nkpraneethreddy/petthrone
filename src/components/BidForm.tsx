@@ -41,6 +41,7 @@ export function ChallengeModal({
   const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
 
   const ownerPreview = useMemo(() => {
     if (ownerPhoto) return URL.createObjectURL(ownerPhoto);
@@ -65,6 +66,8 @@ export function ChallengeModal({
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape" && isOpen) {
+        setStep(1);
+        setError(null);
         onClose();
       }
     }
@@ -87,6 +90,44 @@ export function ChallengeModal({
   );
 
   const throneCost = Math.ceil(court.nextThroneCents / 100);
+
+  function closeModal() {
+    setStep(1);
+    setError(null);
+    onClose();
+  }
+
+  function goToImages() {
+    setError(null);
+    if (!me.user && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("Enter a valid email address.");
+      return;
+    }
+    if (!name.trim()) {
+      setError("Pet name is required.");
+      return;
+    }
+    if (!ownerName.trim()) {
+      setError("Owner name is required.");
+      return;
+    }
+    if (!country) {
+      setError("Country is required.");
+      return;
+    }
+    setStep(2);
+  }
+
+  function goToConfirmation() {
+    setError(null);
+    const existingPhotosCount = me.pet?.photos?.length || (me.pet?.photoUrl ? 1 : 0);
+    const totalPhotos = files.length > 0 ? files.length : existingPhotosCount;
+    if (!me.pet && totalPhotos < 2) {
+      setError("Add at least 2 photos.");
+      return;
+    }
+    setStep(3);
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -144,7 +185,7 @@ export function ChallengeModal({
       if (data.court) {
         onDone(data.court);
         setFiles([]);
-        onClose();
+        closeModal();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed.");
@@ -164,7 +205,7 @@ export function ChallengeModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
       {/* Backdrop */}
       <div
-        onClick={onClose}
+        onClick={closeModal}
         className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
       />
 
@@ -182,7 +223,7 @@ export function ChallengeModal({
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={closeModal}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-paper text-mute transition-all hover:bg-line hover:text-ink"
             title="Close"
           >
@@ -192,50 +233,39 @@ export function ChallengeModal({
           </button>
         </div>
 
-        <div className="p-6 md:p-8 space-y-6">
-          {/* Target Position Info Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-emerald/25 bg-emerald/5 p-4">
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-wider text-emerald">
-                Target
-              </div>
-              <div className="mt-0.5 font-[family-name:var(--font-display)] text-lg font-bold text-ink">
-                {targetLabel}
-              </div>
-              {targetPetName && (
-                <div className="text-xs text-mute mt-0.5">
-                  Held by <strong className="text-ink">{targetPetName}</strong>
+        <div className="space-y-6 p-6 md:p-8">
+          <div className="grid grid-cols-3 gap-2" aria-label={`Step ${step} of 3`}>
+            {["Pet & owner", "Images", "Confirm"].map((label, index) => {
+              const number = index + 1;
+              const active = number === step;
+              const complete = number < step;
+              return (
+                <div key={label} className="text-center">
+                  <div
+                    className={`h-1.5 rounded-full ${
+                      active || complete ? "bg-emerald" : "bg-line"
+                    }`}
+                  />
+                  <span
+                    className={`mt-2 block text-[11px] font-bold ${
+                      active ? "text-ink" : "text-mute"
+                    }`}
+                  >
+                    {number}. {label}
+                  </span>
                 </div>
-              )}
-            </div>
-
-            <div className="rounded-xl bg-white px-3.5 py-2 border border-emerald/20 text-right shadow-sm">
-              <div className="text-[10px] font-bold uppercase text-mute">#1 costs</div>
-              <div className="font-[family-name:var(--font-display)] text-lg font-bold text-vermillion">
-                {dollars(court.nextThroneCents)}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="text-mute">Quick amount:</span>
-            <button
-              type="button"
-              onClick={() => onAmount(throneCost)}
-              className="rounded-lg border border-line px-3 py-1.5 font-semibold text-ink hover:border-ink"
-            >
-              Take #1 for ${throneCost}
-            </button>
-            <button
-              type="button"
-              onClick={() => onAmount(Math.max(MIN_BID_CENTS / 100, Math.round(amount + 10)))}
-              className="rounded-lg border border-line px-3 py-1.5 font-semibold text-ink hover:border-ink"
-            >
-              Add $10
-            </button>
+              );
+            })}
           </div>
 
           <form onSubmit={onSubmit} className="space-y-5">
+            {error && (
+              <div className="rounded-2xl border border-vermillion/30 bg-vermillion/10 p-3 text-sm font-semibold text-vermillion">
+                {error}
+              </div>
+            )}
+
+            {step === 1 && (
             <div className="grid gap-4 md:grid-cols-2">
               {!me.user && (
                 <div>
@@ -349,8 +379,10 @@ export function ChallengeModal({
                 </div>
               </div>
             </div>
+            )}
 
             {/* Multi-Image Upload (2-3 photos) */}
+            {step === 2 && (
             <div className="rounded-2xl border border-line/80 bg-[#fbfdfc] p-4">
               <MultiImageUpload
                 files={files}
@@ -360,8 +392,105 @@ export function ChallengeModal({
                 maxPhotos={3}
               />
             </div>
+            )}
+
+            {step === 1 && (
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-ink hover:bg-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={goToImages}
+                  className="rounded-xl bg-emerald px-6 py-3 text-sm font-bold text-white hover:bg-[#0c7c5c]"
+                >
+                  Continue to images
+                </button>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="flex justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setStep(1);
+                  }}
+                  className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-ink hover:bg-white"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={goToConfirmation}
+                  className="rounded-xl bg-emerald px-6 py-3 text-sm font-bold text-white hover:bg-[#0c7c5c]"
+                >
+                  Review bid
+                </button>
+              </div>
+            )}
 
             {/* Custom Bid Input & Live Projected Outcome */}
+            {step === 3 && (
+            <>
+            <div className="grid gap-3 rounded-2xl border border-line bg-white p-4 sm:grid-cols-2">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-mute">Pet</div>
+                <div className="mt-1 font-bold text-ink">{name}</div>
+                {boast && <div className="mt-1 line-clamp-2 text-xs text-mute">{boast}</div>}
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-mute">Owner</div>
+                <div className="mt-1 font-bold text-ink">{ownerName}</div>
+                <div className="mt-1 text-xs text-mute">{country}</div>
+              </div>
+            </div>
+
+            <div className="flex flex-col justify-between gap-3 rounded-2xl border border-emerald/25 bg-emerald/5 p-4 sm:flex-row sm:items-center">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-emerald">
+                  Target
+                </div>
+                <div className="mt-0.5 font-[family-name:var(--font-display)] text-lg font-bold text-ink">
+                  {targetLabel}
+                </div>
+                {targetPetName && (
+                  <div className="mt-0.5 text-xs text-mute">
+                    Held by <strong className="text-ink">{targetPetName}</strong>
+                  </div>
+                )}
+              </div>
+              <div className="text-left sm:text-right">
+                <div className="text-[10px] font-bold uppercase text-mute">#1 costs</div>
+                <div className="font-[family-name:var(--font-display)] text-lg font-bold text-vermillion">
+                  {dollars(court.nextThroneCents)}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-mute">Quick amount:</span>
+              <button
+                type="button"
+                onClick={() => onAmount(throneCost)}
+                className="rounded-lg border border-line px-3 py-1.5 font-semibold text-ink hover:border-ink"
+              >
+                Take #1 for ${throneCost}
+              </button>
+              <button
+                type="button"
+                onClick={() => onAmount(Math.max(MIN_BID_CENTS / 100, Math.round(amount + 10)))}
+                className="rounded-lg border border-line px-3 py-1.5 font-semibold text-ink hover:border-ink"
+              >
+                Add $10
+              </button>
+            </div>
+
             <div className="grid gap-4 rounded-2xl border border-line bg-paper p-4 md:grid-cols-2 md:items-center">
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-ink">
@@ -417,12 +546,6 @@ export function ChallengeModal({
               </div>
             </div>
 
-            {error && (
-              <div className="rounded-2xl border border-vermillion/30 bg-vermillion/10 p-3 text-sm font-semibold text-vermillion">
-                {error}
-              </div>
-            )}
-
             <label className="flex items-start gap-3 rounded-2xl border border-line bg-paper p-3 text-xs leading-5 text-ink">
               <input
                 type="checkbox"
@@ -452,10 +575,13 @@ export function ChallengeModal({
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  setError(null);
+                  setStep(2);
+                }}
                 className="rounded-2xl border border-line bg-paper px-5 py-4 text-center font-bold text-ink transition-colors hover:bg-white"
               >
-                Cancel
+                Back
               </button>
               <button
                 type="submit"
@@ -471,6 +597,8 @@ export function ChallengeModal({
                 </span>
               </button>
             </div>
+            </>
+            )}
           </form>
         </div>
       </div>
