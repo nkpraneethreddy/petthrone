@@ -31,12 +31,6 @@ export async function generateMetadata({
       images: [{ url: image, width: 1024, height: 1024 }],
       type: "website",
     },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [image],
-    },
   };
 }
 

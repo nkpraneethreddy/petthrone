@@ -15,82 +15,49 @@ export function shareUrl(petId: string) {
 }
 
 export function ShareButtons({ pet, compact = false }: { pet: RankedPet; compact?: boolean }) {
-  const [copied, setCopied] = useState(false);
-  const url = shareUrl(pet.id);
-  const text = shareText(pet);
-  const encodedUrl = encodeURIComponent(url);
-  const encodedText = encodeURIComponent(text);
-
-  const links = [
-    {
-      label: "X",
-      href: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
-    },
-    {
-      label: "Facebook",
-      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-    },
-    {
-      label: "WhatsApp",
-      href: `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`,
-    },
-    {
-      label: "Telegram",
-      href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
-    },
-  ];
-
-  async function copy() {
-    await navigator.clipboard.writeText(`${text} ${url}`);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 2000);
-  }
+  const [sharing, setSharing] = useState(false);
 
   async function nativeShare() {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `${pet.name} on PetThrone`, text, url });
-        return;
-      } catch {
-        /* cancelled */
+    const cardUrl = `/api/og/${pet.id}`;
+    const pageUrl = shareUrl(pet.id);
+    const text = shareText(pet);
+
+    setSharing(true);
+    try {
+      if (navigator.share) {
+        const response = await fetch(cardUrl);
+        const blob = await response.blob();
+        const file = new File([blob], `${pet.id}-petthrone-card.png`, { type: "image/png" });
+
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({
+            title: `${pet.name} on PetThrone`,
+            text,
+            files: [file],
+          });
+        } else {
+          await navigator.share({ title: `${pet.name} on PetThrone`, text, url: pageUrl });
+        }
+      } else {
+        window.open(cardUrl, "_blank", "noopener,noreferrer");
       }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      window.open(cardUrl, "_blank", "noopener,noreferrer");
+    } finally {
+      setSharing(false);
     }
-    await copy();
   }
 
   return (
-    <div className={compact ? "flex flex-wrap gap-2" : "flex flex-wrap gap-2"}>
-      {links.map((item) => (
-        <a
-          key={item.label}
-          href={item.href}
-          target="_blank"
-          rel="noreferrer"
-          className="rounded-xl border border-line bg-paper px-3 py-2 text-xs font-bold text-ink hover:border-teal"
-        >
-          {item.label}
-        </a>
-      ))}
-      <button
-        type="button"
-        onClick={copy}
-        className="rounded-xl border border-line bg-paper px-3 py-2 text-xs font-bold text-ink hover:border-teal"
-      >
-        {copied ? "Copied" : "Copy"}
-      </button>
-      <a
-        href={`/api/og/${pet.id}?download=1`}
-        download={`${pet.id}-petthrone-card.png`}
-        className="rounded-xl border border-line bg-paper px-3 py-2 text-xs font-bold text-ink hover:border-teal"
-      >
-        Download PNG
-      </a>
+    <div className={compact ? "inline-flex" : "flex"}>
       <button
         type="button"
         onClick={nativeShare}
+        disabled={sharing}
         className="rounded-xl bg-emerald px-3 py-2 text-xs font-bold text-white hover:bg-[#0c7c5c]"
       >
-        Share card
+        {sharing ? "Preparing card…" : "Share card"}
       </button>
     </div>
   );

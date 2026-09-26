@@ -22,10 +22,6 @@ export const metadata: Metadata = {
     description: "Pay to rank. Anyone can boost a pet they like.",
     type: "website",
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "PetThrone — the richest pet on the web",
-  },
 };
 
 const themeInit = `try{if(localStorage.getItem("pt-theme")==="dark")document.documentElement.classList.add("dark")}catch(e){}`;
