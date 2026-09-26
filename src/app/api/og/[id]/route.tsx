@@ -16,6 +16,7 @@ export async function GET(
   const origin = new URL(req.url).origin;
   const photoPath = pet.photoUrl || "";
   const photo = photoPath.startsWith("http") ? photoPath : `${origin}${photoPath}`;
+  const snapshot = new Date().toISOString().replace("T", " ").slice(0, 16);
   const requestUrl = new URL(req.url);
   const headers =
     requestUrl.searchParams.get("download") === "1"
@@ -120,6 +121,18 @@ export async function GET(
               {pet.boast}
             </div>
           ) : null}
+
+          <div
+            style={{
+              display: "flex",
+              marginTop: "auto",
+              color: "#c8c8c0",
+              fontSize: 16,
+              letterSpacing: 1,
+            }}
+          >
+            Snapshot {snapshot} UTC
+          </div>
         </div>
       </div>
     ),

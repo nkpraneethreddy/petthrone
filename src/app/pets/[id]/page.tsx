@@ -44,6 +44,7 @@ export default async function PetPage({
   if (!pet) notFound();
 
   const nextCost = nextThroneCents(pet.totalCents);
+  const snapshot = new Date().toISOString().replace("T", " ").slice(0, 16);
 
   return (
     <div className="min-h-screen bg-canvas pt-8">
@@ -66,7 +67,7 @@ export default async function PetPage({
         </div>
 
         <div className="mt-8">
-          <ShareCard pet={pet} nextThrone={nextCost} />
+          <ShareCard pet={pet} nextThrone={nextCost} snapshot={snapshot} />
         </div>
 
         <div className="mt-8 grid gap-4 md:grid-cols-2">

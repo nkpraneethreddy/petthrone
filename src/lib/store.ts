@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { SEED_STATE } from "./seed";
-import type { AppState, Bid, CourtState, FeedEvent, Pet, RankedPet, User } from "./types";
+import type { AppState, Bid, CountryBoardState, CountryRankedPet, CourtState, FeedEvent, Pet, RankedPet, User } from "./types";
 import { MIN_BID_CENTS, nextThroneCents } from "./money";
 
 const DATA_DIR = path.join(process.cwd(), ".data");
@@ -106,6 +106,43 @@ function onlineCount(state: AppState) {
 
 export async function getCourt(): Promise<CourtState> {
   return toCourt(await readState());
+}
+
+export async function getCountryBoard(country?: string): Promise<CountryBoardState> {
+  const state = await readState();
+  const allRanked = ranked(state);
+
+  const countryCounts = new Map<string, number>();
+  for (const pet of allRanked) {
+    if (pet.country) {
+      const c = pet.country.trim();
+      countryCounts.set(c, (countryCounts.get(c) ?? 0) + 1);
+    }
+  }
+
+  const availableCountries = Array.from(countryCounts.entries())
+    .map(([c, count]) => ({ country: c, count }))
+    .sort((a, b) => b.count - a.count || a.country.localeCompare(b.country));
+
+  const targetCountry = country?.trim() || availableCountries[0]?.country || "United States";
+
+  const matchingPets = allRanked.filter(
+    (p) => p.country.trim().toLowerCase() === targetCountry.toLowerCase(),
+  );
+
+  const countryPets: CountryRankedPet[] = matchingPets
+    .slice(0, 10)
+    .map((p, idx) => ({
+      ...p,
+      countryRank: idx + 1,
+    }));
+
+  return {
+    country: targetCountry,
+    pets: countryPets,
+    totalPets: matchingPets.length,
+    availableCountries,
+  };
 }
 
 export async function getPet(id: string) {

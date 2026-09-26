@@ -153,6 +153,9 @@ export function Hall({
               <a href="#board" className="font-semibold text-ink hover:text-emerald">
                 stats →
               </a>
+              <Link href="/countries" className="font-semibold text-ink hover:text-emerald">
+                countries
+              </Link>
               <Link href="/rules" className="font-semibold text-ink hover:text-emerald">
                 rules
               </Link>
@@ -187,7 +190,7 @@ export function Hall({
 
         <section id="board" className="mt-10">
           <h2 className="mb-4 font-[family-name:var(--font-display)] text-2xl font-bold text-ink">
-            Top 10
+            Worldwide Top 10
           </h2>
 
           {court.court.length === 0 ? (

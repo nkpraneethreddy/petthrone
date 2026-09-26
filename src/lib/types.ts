@@ -43,6 +43,17 @@ export type RankedPet = Pet & {
   totalCents: number;
 };
 
+export type CountryRankedPet = RankedPet & {
+  countryRank: number;
+};
+
+export type CountryBoardState = {
+  country: string;
+  pets: CountryRankedPet[];
+  totalPets: number;
+  availableCountries: { country: string; count: number }[];
+};
+
 export type CourtState = {
   king: RankedPet | null;
   court: RankedPet[];

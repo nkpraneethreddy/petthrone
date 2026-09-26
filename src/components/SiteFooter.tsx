@@ -11,6 +11,9 @@ export function SiteFooter() {
           <p className="text-sm text-mute">The richest pet on the web</p>
         </div>
         <nav className="flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-mute">
+          <Link href="/countries" className="hover:text-ink">
+            Countries
+          </Link>
           <Link href="/rules" className="hover:text-ink">
             Rules
           </Link>
