@@ -16,8 +16,6 @@ export async function GET(
   const origin = new URL(req.url).origin;
   const photoPath = pet.photoUrl || "";
   const photo = photoPath.startsWith("http") ? photoPath : `${origin}${photoPath}`;
-  const snapshot = new Date().toISOString().replace("T", " ").slice(0, 16);
-  const points = Math.round(pet.totalCents / 100).toLocaleString("en-US");
   const requestUrl = new URL(req.url);
   const headers =
     requestUrl.searchParams.get("download") === "1"
@@ -59,7 +57,7 @@ export async function GET(
               letterSpacing: 2,
             }}
           >
-            PETTHRONE · SHARE CARD
+            PETTHRONE
           </div>
 
           <div
@@ -67,7 +65,7 @@ export async function GET(
               display: "flex",
               width: 390,
               height: 390,
-              marginTop: 64,
+              marginTop: 78,
               borderRadius: 195,
               padding: 18,
               background: "#2b372d",
@@ -103,31 +101,26 @@ export async function GET(
             {pet.name}
           </div>
 
-          <div style={{ display: "flex", marginTop: 35, fontSize: 25 }}>
-            {pet.rank ? `#${pet.rank} worldwide` : "Unranked"}
+          <div style={{ display: "flex", marginTop: 34, fontSize: 27 }}>
+            {pet.rank ? `Rank #${pet.rank}` : "Unranked"}
             {pet.country ? ` · ${pet.country}` : ""}
           </div>
 
-          <div style={{ display: "flex", marginTop: 20, fontSize: 25 }}>
-            {points} paid placement {points === "1" ? "point" : "points"}
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              flex: 1,
-              flexDirection: "column",
-              justifyContent: "flex-end",
-              alignItems: "center",
-              color: "#c8c8c0",
-              fontSize: 17,
-            }}
-          >
-            <div style={{ display: "flex" }}>Snapshot {snapshot} UTC</div>
-            <div style={{ display: "flex", marginTop: 18 }}>
-              Paid placement, not real wealth. No cash prize.
+          {pet.boast ? (
+            <div
+              style={{
+                display: "flex",
+                maxWidth: 690,
+                marginTop: 30,
+                color: "#c8c8c0",
+                fontSize: 22,
+                lineHeight: 1.4,
+                textAlign: "center",
+              }}
+            >
+              {pet.boast}
             </div>
-          </div>
+          ) : null}
         </div>
       </div>
     ),

@@ -14,15 +14,12 @@ export function ShareCard({
     fetch(`/api/pets/${pet.id}/click`, { method: "POST" }).catch(() => undefined);
   }, [pet.id]);
 
-  const points = Math.round(pet.totalCents / 100).toLocaleString("en-US");
-  const snapshot = new Date().toISOString().replace("T", " ").slice(0, 16);
-
   return (
     <section>
       <div className="bg-[#121512] p-4 text-[#f5f1e8] shadow-xl sm:p-6">
         <div className="flex aspect-square flex-col items-center border border-[#c8aa62] px-6 py-8 text-center sm:px-10 sm:py-10">
           <div className="text-[10px] tracking-[0.18em] text-[#d7bb78] sm:text-xs">
-            PETTHRONE · SHARE CARD
+            PETTHRONE
           </div>
 
           <div className="mt-8 aspect-square w-[42%] overflow-hidden rounded-full border-[12px] border-[#1e2921] bg-[#2b372d] p-2 sm:mt-10">
@@ -39,17 +36,14 @@ export function ShareCard({
           </h1>
 
           <p className="mt-5 text-sm sm:text-base">
-            {pet.rank ? `#${pet.rank} worldwide` : "Unranked"}
+            {pet.rank ? `Rank #${pet.rank}` : "Unranked"}
             {pet.country ? ` · ${pet.country}` : ""}
           </p>
-          <p className="mt-2 text-sm sm:text-base">
-            {points} paid placement {points === "1" ? "point" : "points"}
-          </p>
-
-          <div className="mt-auto text-[10px] leading-6 text-[#c8c8c0] sm:text-xs">
-            <p>Snapshot {snapshot} UTC</p>
-            <p>Paid placement, not real wealth. No cash prize.</p>
-          </div>
+          {pet.boast && (
+            <p className="mt-4 max-w-md text-xs leading-5 text-[#c8c8c0] sm:text-sm">
+              {pet.boast}
+            </p>
+          )}
         </div>
       </div>
 
