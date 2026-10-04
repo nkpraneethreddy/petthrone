@@ -81,9 +81,19 @@ export function ShareButtons({ pet, compact = false }: { pet: RankedPet; compact
         type="button"
         onClick={showPreview}
         disabled={preparing}
-        className="rounded-xl bg-emerald px-3 py-2 text-xs font-bold text-white hover:bg-[#0c7c5c]"
+        className="rounded-xl bg-emerald px-4 py-2 text-xs font-bold text-white transition-all hover:bg-[#0c7c5c] active:scale-95 disabled:opacity-70"
       >
-        {preparing ? "Preparing card…" : "Share card"}
+        {preparing ? (
+          <span className="flex items-center gap-1.5">
+            <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+            Generating card…
+          </span>
+        ) : (
+          "Generate share card"
+        )}
       </button>
       {!previewOpen && error && <span className="ml-2 text-xs text-vermillion">{error}</span>}
 

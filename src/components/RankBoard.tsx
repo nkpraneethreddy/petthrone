@@ -211,9 +211,9 @@ export function RankBoard({
                   </button>
                   <Link
                     href={`/pets/${pet.id}`}
-                    className="text-center text-[11px] font-bold text-teal hover:text-ink"
+                    className="text-center text-[11px] font-bold text-mute transition-colors hover:text-ink"
                   >
-                    Share card
+                    View profile
                   </Link>
                 </div>
               </div>

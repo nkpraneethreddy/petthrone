@@ -298,7 +298,7 @@ export function CountryLeaderboard({
                             href={`/pets/${pet.id}`}
                             className="rounded-xl border border-line bg-canvas px-4 py-2 text-xs font-bold text-ink hover:border-ink transition-colors"
                           >
-                            Share card
+                            View profile
                           </Link>
                         </div>
                       </div>

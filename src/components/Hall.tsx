@@ -366,9 +366,9 @@ export function Hall({
               </div>
               <Link
                 href={`/pets/${selectedPet.id}`}
-                className="mt-3 block text-center text-xs font-bold text-teal hover:text-ink"
+                className="mt-3 block text-center text-xs font-bold text-teal transition-colors hover:text-ink"
               >
-                Open share card
+                View full profile
               </Link>
             </div>
           </div>
