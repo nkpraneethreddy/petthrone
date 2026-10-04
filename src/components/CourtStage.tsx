@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import dynamic from "next/dynamic";
+import { memo, useState } from "react";
 import type { RankedPet } from "@/lib/types";
-import { CourtCanvas } from "./CourtCanvas";
 
-export function CourtStage({
+const CourtCanvas = dynamic(
+  () => import("./CourtCanvas").then((mod) => mod.CourtCanvas),
+  {
+    ssr: false,
+    loading: () => <div className="h-full w-full animate-pulse bg-emerald/5" />,
+  },
+);
+
+export const CourtStage = memo(function CourtStage({
   pets,
   flash,
   onSelectPet,
@@ -25,7 +33,7 @@ export function CourtStage({
           "radial-gradient(ellipse at 50% 38%, rgba(25,211,162,0.16), rgba(26,163,196,0.06) 38%, transparent 65%)",
       }}
     >
-      <CourtCanvas pets={pets.slice(0, 3)} flash={flash} onSelectPet={onSelectPet} />
+      <CourtCanvas pets={pets} flash={flash} onSelectPet={onSelectPet} />
 
       <button
         type="button"
@@ -45,4 +53,4 @@ export function CourtStage({
       </button>
     </div>
   );
-}
+});

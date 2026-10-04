@@ -21,16 +21,24 @@ export async function POST(req: Request) {
   }
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
+    if (session.payment_status && session.payment_status !== "paid") {
+      return NextResponse.json({ received: true });
+    }
     const userId = session.metadata?.userId;
     const amountCents = Number(session.metadata?.amountCents ?? session.amount_total ?? 0);
-    if (userId && amountCents) {
-      await applyBid({
-        userId,
-        amountCents,
-        stripeSessionId: session.id,
-        petId: session.metadata?.petId || undefined,
-        kind: session.metadata?.kind === "boost" ? "boost" : "bid",
-      });
+    if (userId && Number.isFinite(amountCents) && amountCents > 0) {
+      try {
+        await applyBid({
+          userId,
+          amountCents,
+          stripeSessionId: session.id,
+          petId: session.metadata?.petId || undefined,
+          kind: session.metadata?.kind === "boost" ? "boost" : "bid",
+        });
+      } catch (err) {
+        console.error("webhook applyBid failed", err);
+        return NextResponse.json({ error: "Could not apply bid." }, { status: 500 });
+      }
     }
   }
   return NextResponse.json({ received: true });

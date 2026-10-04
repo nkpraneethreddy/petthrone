@@ -6,7 +6,7 @@ import { CountryLeaderboard } from "@/components/CountryLeaderboard";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Country Leaderboards — PetThrone",
+  title: "Country Leaderboards",
   description:
     "Top 10 pets by country on PetThrone. Country rankings by paid tribute. The throne is always worldwide at #1.",
   openGraph: {

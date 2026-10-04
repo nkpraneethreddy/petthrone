@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { rateLimit, tooMany } from "@/lib/rateLimit";
 import { attachSession, getSessionUser, loginWithEmail } from "@/lib/session";
 import { getUserPet, savePet } from "@/lib/store";
 import { saveUpload } from "@/lib/upload";
 import { acceptedLegal, validateListing } from "@/lib/policy";
+import { isEmail } from "@/lib/site";
 
 export async function GET() {
   const user = await getSessionUser();
@@ -12,35 +14,18 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const limit = rateLimit(req, "pets", 12, 60_000);
+  if (!limit.ok) return tooMany(limit.retryAfter);
+
   let user = await getSessionUser();
   const form = await req.formData();
   const email = String(form.get("email") ?? "").trim().toLowerCase();
 
-  let newlyLoggedIn = false;
-  if (!user) {
-    if (!email || !email.includes("@")) {
-      return NextResponse.json(
-        { error: "Please enter a valid owner email address." },
-        { status: 400 }
-      );
-    }
-    user = await loginWithEmail(email);
-    newlyLoggedIn = true;
-  }
-
-  const name = String(form.get("name") ?? "").trim();
-  const boast = String(form.get("boast") ?? "").trim();
-  const ownerName = String(form.get("ownerName") ?? "").trim();
-  const country = String(form.get("country") ?? "").trim();
-
-  const rawFiles = [
-    ...form.getAll("photos"),
-    ...form.getAll("photo"),
-  ].filter((f): f is File => f instanceof File && f.size > 0).slice(0, 3);
-
-  const uploadedUrls: string[] = [];
-  for (const f of rawFiles) {
-    uploadedUrls.push(await saveUpload(f));
+  if (!user && !isEmail(email)) {
+    return NextResponse.json(
+      { error: "Please enter a valid owner email address." },
+      { status: 400 },
+    );
   }
 
   if (!acceptedLegal(form)) {
@@ -50,7 +35,19 @@ export async function POST(req: Request) {
     );
   }
 
+  const name = String(form.get("name") ?? "").trim();
+  const boast = String(form.get("boast") ?? "").trim();
+  const ownerName = String(form.get("ownerName") ?? "").trim();
+  const country = String(form.get("country") ?? "").trim();
+
   if (!name) return NextResponse.json({ error: "Pet name is required." }, { status: 400 });
+
+  let newlyLoggedIn = false;
+  if (!user) {
+    user = await loginWithEmail(email);
+    newlyLoggedIn = true;
+  }
+
   const existing = await getUserPet(user.id);
   const listingError = validateListing({
     name,
@@ -63,14 +60,39 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: listingError }, { status: 400 });
   }
 
+  const rawFiles = [
+    ...form.getAll("photos"),
+    ...form.getAll("photo"),
+  ].filter((f): f is File => f instanceof File && f.size > 0).slice(0, 3);
+
+  if (!existing && rawFiles.length < 2) {
+    return NextResponse.json({ error: "Add at least 2 photos of your pet." }, { status: 400 });
+  }
+
+  // Only touch disk once the submission is known to be valid.
+  const uploadedUrls: string[] = [];
+  try {
+    for (const f of rawFiles) {
+      uploadedUrls.push(await saveUpload(f));
+    }
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Upload failed." },
+      { status: 400 },
+    );
+  }
+
   const ownerPhotoFile = form.get("ownerPhoto");
   let ownerPhotoUrl: string | null | undefined;
   if (ownerPhotoFile instanceof File && ownerPhotoFile.size > 0) {
-    ownerPhotoUrl = await saveUpload(ownerPhotoFile);
-  }
-
-  if (!existing && uploadedUrls.length < 2) {
-    return NextResponse.json({ error: "Add at least 2 photos of your pet." }, { status: 400 });
+    try {
+      ownerPhotoUrl = await saveUpload(ownerPhotoFile);
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : "Upload failed." },
+        { status: 400 },
+      );
+    }
   }
 
   const photos =

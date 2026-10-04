@@ -122,7 +122,7 @@ export function ShareCard({
         <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-line pt-4 text-xs text-mute">
           <span>{pet.clicks.toLocaleString()} views</span>
           <span>·</span>
-          <span>Added {new Date(pet.createdAt).toLocaleDateString()}</span>
+          <span>Added {pet.createdAt.slice(0, 10)}</span>
         </div>
       </div>
 

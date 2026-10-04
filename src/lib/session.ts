@@ -10,6 +10,7 @@ const COOKIE_OPTS = {
   sameSite: "lax" as const,
   path: "/",
   maxAge: 60 * 60 * 24 * 365,
+  secure: process.env.NODE_ENV === "production",
 };
 
 export async function getSessionUser(): Promise<User | null> {

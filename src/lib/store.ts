@@ -1,14 +1,17 @@
 import { randomUUID } from "crypto";
-import { mkdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readFile, rename, writeFile } from "fs/promises";
 import path from "path";
 import { SEED_STATE } from "./seed";
 import type { AppState, Bid, CountryBoardState, CountryRankedPet, CourtState, FeedEvent, Pet, RankedPet, User } from "./types";
-import { MIN_BID_CENTS, nextThroneCents } from "./money";
+import { MAX_BID_CENTS, MIN_BID_CENTS, nextThroneCents } from "./money";
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const STORE_PATH = path.join(DATA_DIR, "store.json");
 
 let writeQueue: Promise<void> = Promise.resolve();
+let memory: AppState | null = null;
+let diskChain: Promise<void> = Promise.resolve();
+let diskTimer: ReturnType<typeof setTimeout> | null = null;
 
 function normalizePets(pets: Pet[]): Pet[] {
   return pets.map((p) => {
@@ -26,6 +29,7 @@ function normalizePets(pets: Pet[]): Pet[] {
 }
 
 async function readState(): Promise<AppState> {
+  if (memory) return memory;
   try {
     const raw = await readFile(STORE_PATH, "utf8");
     const parsed = JSON.parse(raw) as AppState;
@@ -34,17 +38,66 @@ async function readState(): Promise<AppState> {
     parsed.visitsDay ??= todayKey();
     parsed.presence ??= {};
     parsed.pets = normalizePets(parsed.pets || []);
-    return parsed;
-  } catch {
+    memory = parsed;
+    return memory;
+  } catch (err) {
+    // Only seed a genuinely missing store. A store that exists but failed to
+    // parse is a problem to surface, not to silently overwrite with seed data.
+    if ((err as NodeJS.ErrnoException)?.code !== "ENOENT") {
+      throw new Error(
+        `Refusing to overwrite unreadable ${STORE_PATH}. Restore or remove it, then restart.`,
+        { cause: err },
+      );
+    }
     await mkdir(DATA_DIR, { recursive: true });
-    await writeFile(STORE_PATH, JSON.stringify(SEED_STATE, null, 2), "utf8");
-    return structuredClone(SEED_STATE);
+    memory = structuredClone(SEED_STATE);
+    await writeFile(STORE_PATH, JSON.stringify(memory), "utf8");
+    return memory;
   }
 }
 
+// The debounced write would otherwise be lost when a host restarts the process.
+if (!process.env.NEXT_PHASE) {
+  for (const signal of ["SIGTERM", "SIGINT"] as const) {
+    process.once(signal, () => {
+      if (memory) void persist(memory);
+    });
+  }
+}
+
+// Write to a sibling file and rename over the target so a crash mid-write
+// can never leave a half-written store.json behind.
+function persist(state: AppState) {
+  const payload = JSON.stringify(state);
+  diskChain = diskChain
+    .then(async () => {
+      await mkdir(DATA_DIR, { recursive: true });
+      const tmp = `${STORE_PATH}.${process.pid}.tmp`;
+      await writeFile(tmp, payload, "utf8");
+      await rename(tmp, STORE_PATH);
+    })
+    .catch((err) => {
+      console.error("[store] failed to persist state", err);
+    });
+  return diskChain;
+}
+
 async function writeState(state: AppState) {
-  await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(STORE_PATH, JSON.stringify(state, null, 2), "utf8");
+  memory = state;
+  if (diskTimer) {
+    clearTimeout(diskTimer);
+    diskTimer = null;
+  }
+  await persist(state);
+}
+
+function writeStateSoon(state: AppState) {
+  memory = state;
+  if (diskTimer) return;
+  diskTimer = setTimeout(() => {
+    diskTimer = null;
+    if (memory) void persist(memory);
+  }, 1500);
 }
 
 function enqueue<T>(fn: () => Promise<T>): Promise<T> {
@@ -242,8 +295,8 @@ export async function applyBid(input: {
   kind?: "bid" | "boost";
 }): Promise<{ court: CourtState; dethroned: boolean; petId: string }> {
   return enqueue(async () => {
-    if (input.amountCents < MIN_BID_CENTS) {
-      throw new Error(`Minimum bid is $${MIN_BID_CENTS / 100}.`);
+    if (input.amountCents < MIN_BID_CENTS || input.amountCents > MAX_BID_CENTS) {
+      throw new Error(`Bid must be between $${MIN_BID_CENTS / 100} and $${MAX_BID_CENTS / 100}.`);
     }
     if (input.amountCents % 100 !== 0) {
       throw new Error("Bids are whole dollars.");
@@ -323,7 +376,7 @@ export async function bumpVisitors(sessionId?: string, first = false) {
       state.visitorsToday += 1;
     }
 
-    await writeState(state);
+    writeStateSoon(state);
     return {
       visitors: state.visitors,
       visitorsToday: state.visitorsToday,
@@ -338,7 +391,7 @@ export async function bumpClicks(petId: string) {
     const pet = state.pets.find((p) => p.id === petId);
     if (pet) {
       pet.clicks += 1;
-      await writeState(state);
+      writeStateSoon(state);
     }
     return pet?.clicks ?? 0;
   });

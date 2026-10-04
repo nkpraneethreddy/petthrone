@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { claimCentsForRank, dollars } from "@/lib/money";
+import { sizedPhoto } from "@/lib/photos";
 import type { RankedPet } from "@/lib/types";
 import { Ago, Reign } from "./Ago";
 import { OwnerLine } from "./OwnerLine";
@@ -29,8 +30,9 @@ function PetCardPhotos({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={displayPhotos[activeIdx] || displayPhotos[0]}
+          src={sizedPhoto(displayPhotos[activeIdx] || displayPhotos[0], 320)}
           alt={`${name} portrait ${activeIdx + 1}`}
+          decoding="async"
           className="h-full w-full object-cover transition-all duration-300 hover:scale-105"
         />
 
@@ -71,7 +73,7 @@ function PetCardPhotos({
               }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="h-full w-full object-cover" />
+              <img src={sizedPhoto(url, 64)} alt="" decoding="async" className="h-full w-full object-cover" />
             </button>
           ))}
         </div>

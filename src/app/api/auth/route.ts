@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { rateLimit, tooMany } from "@/lib/rateLimit";
 import { attachSession, clearSessionCookie, getSessionUser, loginWithEmail } from "@/lib/session";
 import { getUserPet } from "@/lib/store";
+import { isEmail } from "@/lib/site";
 
 export async function GET() {
   const user = await getSessionUser();
@@ -9,9 +11,12 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json()) as { email?: string };
+  const limit = rateLimit(req, "auth", 10, 60_000);
+  if (!limit.ok) return tooMany(limit.retryAfter);
+
+  const body = (await req.json().catch(() => ({}))) as { email?: string };
   const email = body.email?.trim().toLowerCase() ?? "";
-  if (!email || !email.includes("@")) {
+  if (!isEmail(email)) {
     return NextResponse.json({ error: "Enter a real email." }, { status: 400 });
   }
   const user = await loginWithEmail(email);

@@ -113,7 +113,7 @@ export function MultiImageUpload({
           ref={fileInputRef}
           type="file"
           multiple
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,image/gif"
           className="hidden"
           onChange={(e) => {
             handleBatchFiles(e.target.files);
@@ -271,7 +271,7 @@ export function MultiImageUpload({
             >
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 className="hidden"
                 onChange={(e) => {
                   const picked = e.target.files?.[0];

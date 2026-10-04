@@ -1,11 +1,12 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { ContactShadows, Html, OrbitControls, RoundedBox, Sparkles } from "@react-three/drei";
+import { Html, OrbitControls, RoundedBox, Sparkles } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { RankedPet } from "@/lib/types";
 import { dollars } from "@/lib/money";
+import { sizedPhoto } from "@/lib/photos";
 
 type Palette = { velvet: string; velvetDark: string; trim: string; glow: string };
 
@@ -339,7 +340,10 @@ function Portrait({
   onSelect?: () => void;
 }) {
   const photos = useMemo(
-    () => (pet.photos && pet.photos.length > 0 ? pet.photos : [pet.photoUrl || "/seed/bean.svg"]),
+    () =>
+      (pet.photos && pet.photos.length > 0 ? pet.photos : [pet.photoUrl || "/seed/bean.svg"]).map((url) =>
+        sizedPhoto(url, 480),
+      ),
     [pet.photos, pet.photoUrl],
   );
   const textures = useTextures(photos);
@@ -557,6 +561,7 @@ function Confetti({ trigger }: { trigger: number }) {
   const mesh = useRef<THREE.InstancedMesh>(null);
   const clock = useThree((s) => s.clock);
   const dummy = useMemo(() => new THREE.Object3D(), []);
+  const settled = useRef(false);
   const sim = useRef<{
     start: number;
     parts: { p: THREE.Vector3; v: THREE.Vector3; r: THREE.Euler; s: number }[];
@@ -576,6 +581,7 @@ function Confetti({ trigger }: { trigger: number }) {
 
   useEffect(() => {
     if (!trigger) return;
+    settled.current = false;
     sim.current.start = clock.elapsedTime;
     sim.current.parts = Array.from({ length: COUNT }, () => ({
       p: new THREE.Vector3((Math.random() - 0.5) * 0.6, 3.6, (Math.random() - 0.5) * 0.6),
@@ -587,9 +593,10 @@ function Confetti({ trigger }: { trigger: number }) {
 
   useFrame((state, dt) => {
     const m = mesh.current;
-    if (!m) return;
+    if (!m || settled.current) return;
     const age = state.clock.elapsedTime - sim.current.start;
     const active = age < 4;
+    if (!active) settled.current = true;
     for (let i = 0; i < COUNT; i++) {
       const pt = sim.current.parts[i];
       if (!active || !pt) {
@@ -637,6 +644,7 @@ export function CourtCanvas({
 }) {
   const [burst, setBurst] = useState(0);
   const [dark, setDark] = useState(false);
+  const [awake, setAwake] = useState(true);
   const top = pets.slice(0, 3);
   const kingGlow = flash ? FLASH_GLOW : PALETTES[1].glow;
 
@@ -652,12 +660,19 @@ export function CourtCanvas({
     if (flash) setBurst((b) => b + 1);
   }, [flash]);
 
+  useEffect(() => {
+    const onVis = () => setAwake(document.visibilityState === "visible");
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+
   return (
     <Canvas
       shadows
-      dpr={[1, 2]}
+      frameloop={awake ? "always" : "demand"}
+      dpr={[1, 1.25]}
       camera={{ position: [0, 2.2, 7.6], fov: 40 }}
-      gl={{ antialias: true, alpha: true }}
+      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       className="cursor-grab active:cursor-grabbing"
     >
       <color attach="background" args={[dark ? "#14201c" : "#fbfdfc"]} />
@@ -667,7 +682,7 @@ export function CourtCanvas({
         position={[5, 10, 7]}
         intensity={2}
         castShadow
-        shadow-mapSize={[1024, 1024]}
+        shadow-mapSize={[512, 512]}
       />
       <spotLight
         position={[0, 8, 3]}
@@ -675,7 +690,6 @@ export function CourtCanvas({
         penumbra={0.7}
         intensity={flash ? 90 : 55}
         color={kingGlow}
-        castShadow
       />
       <pointLight position={[0, 2.2, -1.4]} color={kingGlow} intensity={6} distance={6} />
 
@@ -719,11 +733,8 @@ export function CourtCanvas({
           <SlotLabel key={`label-${pet.id}`} pet={pet} />
         ))}
 
-        <Sparkles count={70} scale={[10, 5, 6]} position={[0, 2.5, 0]} size={3} speed={0.35} opacity={0.7} color="#19D3A2" />
-        <Sparkles count={40} scale={[6, 4, 4]} position={[0, 2.5, 0]} size={4} speed={0.5} opacity={0.5} color="#1AA3C4" />
+        <Sparkles count={28} scale={[8, 4, 5]} position={[0, 2.5, 0]} size={2.5} speed={0.3} opacity={0.55} color="#19D3A2" />
         <Confetti trigger={burst} />
-
-        <ContactShadows position={[0, 0.001, 0]} opacity={0.35} scale={16} blur={2.4} far={4} />
       </SwayingStage>
 
       <OrbitControls

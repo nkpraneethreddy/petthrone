@@ -1,4 +1,5 @@
 export const MIN_BID_CENTS = 300;
+export const MAX_BID_CENTS = 1_000_000;
 export const RANK_BUMP_CENTS = 100;
 
 export function dollars(cents: number) {

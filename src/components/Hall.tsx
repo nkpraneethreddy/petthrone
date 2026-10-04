@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChallengeModal } from "./BidForm";
 import { BoostModal } from "./BoostModal";
 import { CourtStage } from "./CourtStage";
@@ -13,6 +13,7 @@ import { ShareButtons } from "./ShareButtons";
 import { SiteFooter } from "./SiteFooter";
 import { ThemeToggle } from "./ThemeToggle";
 import { dollars } from "@/lib/money";
+import { sizedPhoto } from "@/lib/photos";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import type { CourtState, MeState, RankedPet } from "@/lib/types";
 
@@ -74,18 +75,52 @@ export function Hall({
   }, []);
 
   useEffect(() => {
+    let stopped = false;
+
+    function boardSig(c: CourtState) {
+      return (
+        c.court.map((p) => `${p.id}:${p.rank}:${p.totalCents}`).join("|") +
+        "#" +
+        (c.events[0]?.id ?? "") +
+        "#" +
+        c.challengers.length
+      );
+    }
+
     async function pull() {
-      const res = await fetch("/api/court", { cache: "no-store" });
-      if (!res.ok) return;
+      if (stopped || document.hidden) return;
+      const res = await fetch("/api/court");
+      if (!res.ok || stopped) return;
       const next = (await res.json()) as CourtState;
       if (kingId.current && next.king?.id && next.king.id !== kingId.current) {
         setFlash(true);
         window.setTimeout(() => setFlash(false), 1400);
       }
       kingId.current = next.king?.id;
-      setCourt(next);
+      setCourt((current) => {
+        if (boardSig(current) !== boardSig(next)) return next;
+        if (
+          current.online === next.online &&
+          current.visitors === next.visitors &&
+          current.visitorsToday === next.visitorsToday &&
+          current.treasuryCents === next.treasuryCents
+        ) {
+          return current;
+        }
+        return {
+          ...current,
+          online: next.online,
+          visitors: next.visitors,
+          visitorsToday: next.visitorsToday,
+          treasuryCents: next.treasuryCents,
+        };
+      });
     }
-    const t = setInterval(pull, 2000);
+    const t = setInterval(pull, 12000);
+    const onVisible = () => {
+      if (!document.hidden) void pull();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     const sb = createSupabaseBrowser();
     const channel = sb
       ?.channel("court")
@@ -98,10 +133,14 @@ export function Hall({
       )
       .subscribe();
     return () => {
+      stopped = true;
       clearInterval(t);
+      document.removeEventListener("visibilitychange", onVisible);
       if (sb && channel) void sb.removeChannel(channel);
     };
   }, []);
+
+  const selectPet = useCallback((pet: RankedPet) => setSelectedPet(pet), []);
 
   function claim(rank: number, cents: number, petName?: string) {
     setAmount(Math.max(1, Math.ceil(cents / 100)));
@@ -181,11 +220,7 @@ export function Hall({
           <h1 className="mb-4 text-center font-[family-name:var(--font-display)] text-3xl font-black tracking-tight text-ink md:text-5xl">
             The richest pet on the web
           </h1>
-          <CourtStage
-            pets={court.court}
-            flash={flash}
-            onSelectPet={(p) => setSelectedPet(p)}
-          />
+          <CourtStage pets={court.court} flash={flash} onSelectPet={selectPet} />
         </section>
 
         <section id="board" className="mt-10">
@@ -240,7 +275,7 @@ export function Hall({
                     </span>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={pet.photoUrl}
+                      src={sizedPhoto(pet.photoUrl, 96)}
                       alt={pet.name}
                       className="h-10 w-10 rounded-xl object-cover"
                     />

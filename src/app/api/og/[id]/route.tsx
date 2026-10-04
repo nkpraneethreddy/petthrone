@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { publicOrigin } from "@/lib/site";
 import { getPet } from "@/lib/store";
 
 export const runtime = "nodejs";
@@ -13,7 +14,7 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  const origin = new URL(req.url).origin;
+  const origin = publicOrigin(req);
   const photoPath = pet.photoUrl || "";
   const photo = photoPath.startsWith("http") ? photoPath : `${origin}${photoPath}`;
   const snapshot = new Date().toISOString().replace("T", " ").slice(0, 16);

@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
+import { rateLimit, tooMany } from "@/lib/rateLimit";
 import { attachSession, getSessionUser, loginWithEmail } from "@/lib/session";
 import { getPet, getUserPet, savePet } from "@/lib/store";
 import { getStripe, hasStripe } from "@/lib/stripe";
 import { saveUpload } from "@/lib/upload";
-import { MIN_BID_CENTS } from "@/lib/money";
+import { MAX_BID_CENTS, MIN_BID_CENTS } from "@/lib/money";
 import { acceptedLegal, validateListing } from "@/lib/policy";
+import { isEmail, publicOrigin } from "@/lib/site";
 
 export async function POST(req: Request) {
+  const limit = rateLimit(req, "checkout", 12, 60_000);
+  if (!limit.ok) return tooMany(limit.retryAfter);
+
   const form = await req.formData();
   const email = String(form.get("email") ?? "").trim().toLowerCase();
   const name = String(form.get("name") ?? "").trim();
@@ -29,21 +34,26 @@ export async function POST(req: Request) {
     ...form.getAll("photo"),
   ].filter((f): f is File => f instanceof File && f.size > 0).slice(0, 3);
 
-  const uploadedUrls: string[] = [];
-  for (const f of rawFiles) {
-    uploadedUrls.push(await saveUpload(f));
-  }
-
   const ownerPhotoFile = form.get("ownerPhoto");
+
+  // Deferred so a boost (which carries no listing) never writes files to disk,
+  // and so invalid submissions are rejected before anything is stored.
+  let uploadedUrls: string[] = [];
   let ownerPhotoUrl: string | null | undefined;
-  if (ownerPhotoFile instanceof File && ownerPhotoFile.size > 0) {
-    ownerPhotoUrl = await saveUpload(ownerPhotoFile);
+  async function storePhotos() {
+    uploadedUrls = [];
+    for (const f of rawFiles) {
+      uploadedUrls.push(await saveUpload(f));
+    }
+    if (ownerPhotoFile instanceof File && ownerPhotoFile.size > 0) {
+      ownerPhotoUrl = await saveUpload(ownerPhotoFile);
+    }
   }
 
   const sessionUser = await getSessionUser();
   let user = sessionUser;
   if (!user) {
-    if (!email.includes("@")) {
+    if (!isEmail(email)) {
       return NextResponse.json({ error: "Email is required to pay." }, { status: 400 });
     }
     user = await loginWithEmail(email);
@@ -51,9 +61,9 @@ export async function POST(req: Request) {
 
   if (mode === "boost") {
     const amountCents = Math.round(amountDollars) * 100;
-    if (!Number.isFinite(amountCents) || amountCents < MIN_BID_CENTS) {
+    if (!Number.isFinite(amountCents) || amountCents < MIN_BID_CENTS || amountCents > MAX_BID_CENTS) {
       return NextResponse.json(
-        { error: `Pay at least $${MIN_BID_CENTS / 100}.` },
+        { error: `Pay between $${MIN_BID_CENTS / 100} and $${MAX_BID_CENTS / 100}.` },
         { status: 400 },
       );
     }
@@ -68,35 +78,54 @@ export async function POST(req: Request) {
       );
     }
     const stripe = getStripe()!;
-    const origin = new URL(req.url).origin;
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      success_url: `${origin}/pets/${target.id}?boosted=1`,
-      cancel_url: `${origin}/pets/${target.id}?canceled=1`,
-      customer_email: user.email,
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: amountCents,
-            product_data: {
-              name: `Boost ${target.name} on PetThrone`,
-              description: "Adds to this pet’s public total. Not refundable. Does not transfer the listing.",
+    const origin = publicOrigin(req);
+    try {
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        success_url: `${origin}/pets/${target.id}?boosted=1`,
+        cancel_url: `${origin}/pets/${target.id}?canceled=1`,
+        customer_email: user.email,
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency: "usd",
+              unit_amount: amountCents,
+              product_data: {
+                name: `Boost ${target.name} on PetThrone`,
+                description: "Adds to this pet’s public total. Not refundable. Does not transfer the listing.",
+              },
             },
           },
+        ],
+        metadata: {
+          userId: user.id,
+          petId: target.id,
+          amountCents: String(amountCents),
+          kind: "boost",
         },
-      ],
-      metadata: {
-        userId: user.id,
-        petId: target.id,
-        amountCents: String(amountCents),
-        kind: "boost",
-      },
-    });
-    const res = NextResponse.json({ url: session.url });
-    attachSession(res, user.id);
-    return res;
+      });
+      const res = NextResponse.json({ url: session.url });
+      attachSession(res, user.id);
+      return res;
+    } catch {
+      return NextResponse.json({ error: "Could not start payment. Try again." }, { status: 502 });
+    }
+  }
+
+  const amountCents = Math.round(amountDollars) * 100;
+  if (!Number.isFinite(amountCents) || amountCents < MIN_BID_CENTS || amountCents > MAX_BID_CENTS) {
+    return NextResponse.json(
+      { error: `Pay between $${MIN_BID_CENTS / 100} and $${MAX_BID_CENTS / 100}.` },
+      { status: 400 },
+    );
+  }
+
+  if (!hasStripe()) {
+    return NextResponse.json(
+      { error: "Payments are not configured. Set STRIPE_SECRET_KEY." },
+      { status: 503 },
+    );
   }
 
   let petName = "";
@@ -112,8 +141,16 @@ export async function POST(req: Request) {
     if (listingError) {
       return NextResponse.json({ error: listingError }, { status: 400 });
     }
-    if (uploadedUrls.length < 2) {
+    if (rawFiles.length < 2) {
       return NextResponse.json({ error: "Add at least 2 photos of your pet." }, { status: 400 });
+    }
+    try {
+      await storePhotos();
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : "Upload failed." },
+        { status: 400 },
+      );
     }
     const photos = uploadedUrls;
     const created = await savePet({
@@ -128,6 +165,14 @@ export async function POST(req: Request) {
     });
     petName = created.name;
   } else {
+    try {
+      await storePhotos();
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : "Upload failed." },
+        { status: 400 },
+      );
+    }
     const photos = uploadedUrls.length > 0 ? uploadedUrls : existing.photos || [existing.photoUrl];
     const saved = await savePet({
       userId: user.id,
@@ -142,48 +187,37 @@ export async function POST(req: Request) {
     petName = saved.name;
   }
 
-  const amountCents = Math.round(amountDollars) * 100;
-  if (!Number.isFinite(amountCents) || amountCents < MIN_BID_CENTS) {
-    return NextResponse.json(
-      { error: `Pay at least $${MIN_BID_CENTS / 100}.` },
-      { status: 400 },
-    );
-  }
-
-  if (!hasStripe()) {
-    return NextResponse.json(
-      { error: "Payments are not configured. Set STRIPE_SECRET_KEY." },
-      { status: 503 },
-    );
-  }
-
   const stripe = getStripe()!;
-  const origin = new URL(req.url).origin;
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    success_url: `${origin}/?paid=1`,
-    cancel_url: `${origin}/?canceled=1`,
-    customer_email: user.email,
-    line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency: "usd",
-          unit_amount: amountCents,
-          product_data: {
-            name: `PetThrone rank for ${petName}`,
-            description: "Public board placement. Not refundable.",
+  const origin = publicOrigin(req);
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      success_url: `${origin}/?paid=1`,
+      cancel_url: `${origin}/?canceled=1`,
+      customer_email: user.email,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: amountCents,
+            product_data: {
+              name: `PetThrone rank for ${petName}`,
+              description: "Public board placement. Not refundable.",
+            },
           },
         },
+      ],
+      metadata: {
+        userId: user.id,
+        amountCents: String(amountCents),
+        kind: "bid",
       },
-    ],
-    metadata: {
-      userId: user.id,
-      amountCents: String(amountCents),
-      kind: "bid",
-    },
-  });
-  const res = NextResponse.json({ url: session.url });
-  attachSession(res, user.id);
-  return res;
+    });
+    const res = NextResponse.json({ url: session.url });
+    attachSession(res, user.id);
+    return res;
+  } catch {
+    return NextResponse.json({ error: "Could not start payment. Try again." }, { status: 502 });
+  }
 }

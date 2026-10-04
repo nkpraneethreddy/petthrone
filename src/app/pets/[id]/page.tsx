@@ -19,7 +19,7 @@ export async function generateMetadata({
   const { id } = await params;
   const pet = await getPet(id);
   if (!pet) return { title: "PetThrone" };
-  const title = `${pet.name} — #${pet.rank || "?"} on PetThrone`;
+  const title = `${pet.name} — #${pet.rank || "?"}`;
   const description = `${pet.name} is ${pet.rank ? `#${pet.rank}` : "unranked"} at ${dollars(pet.totalCents)}. ${pet.boast || "The richest pet on the web."}`;
   const image = `/api/og/${pet.id}`;
   return {
@@ -30,6 +30,12 @@ export async function generateMetadata({
       description,
       images: [{ url: image, width: 1024, height: 1024 }],
       type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [image],
     },
   };
 }

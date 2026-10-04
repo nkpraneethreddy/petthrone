@@ -4,7 +4,7 @@ import { MIN_BID_CENTS } from "@/lib/money";
 import { MAX_BOAST, MAX_OWNER_NAME, MAX_PET_NAME, MIN_AGE } from "@/lib/policy";
 
 export const metadata: Metadata = {
-  title: "Rules — PetThrone",
+  title: "Rules",
   description: "Strict ranking, payment, and content rules for PetThrone.",
 };
 

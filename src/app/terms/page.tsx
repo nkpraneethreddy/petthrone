@@ -3,7 +3,7 @@ import { LegalChrome } from "@/components/LegalChrome";
 import { MIN_AGE } from "@/lib/policy";
 
 export const metadata: Metadata = {
-  title: "Terms — PetThrone",
+  title: "Terms",
   description: "Terms and conditions for using PetThrone.",
 };
 

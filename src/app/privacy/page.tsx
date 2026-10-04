@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LegalChrome } from "@/components/LegalChrome";
 
 export const metadata: Metadata = {
-  title: "Privacy — PetThrone",
+  title: "Privacy",
   description: "How PetThrone collects, uses, and keeps personal data.",
 };
 
